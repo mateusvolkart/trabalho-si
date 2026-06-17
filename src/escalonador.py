@@ -2,7 +2,7 @@ from collections import deque
 import random
 
 QUANTUM = 3
-QUANTIDADE_PROCESSOS = 5
+QUANTIDADE_PROCESSOS = 10
 SEMENTE_ALEATORIA = 4867654453
 
 random.seed(SEMENTE_ALEATORIA)
@@ -15,8 +15,20 @@ fila_baixa_prioridade = deque()
 fila_io = []
 
 def criar_processo(pid):
-
     tempo_total_cpu = random.randint(8, 20)
+    
+    tem_io = random.choice([True, False])
+
+    if tem_io:
+        tipo_io = random.choice(["DISCO", "FITA", "IMPRESSORA"])
+        tempo_total_io = random.randint(2, 5)
+        momento_io = random.randint(max(1, tempo_total_cpu // 3), max(2, tempo_total_cpu - 2))
+        realizou_io = False
+    else:
+        tipo_io = "NENHUM"
+        tempo_total_io = 0
+        momento_io = -1
+        realizou_io = True 
 
     return {
         "pid": pid,
@@ -24,11 +36,11 @@ def criar_processo(pid):
         "status": "NOVO",
         "prioridade": "ALTA",
         "tempo_cpu_restante": tempo_total_cpu,
-        "tipo_io": random.choice(["DISCO", "FITA", "IMPRESSORA"]),
-        "tempo_total_io": random.randint(2, 5),
+        "tipo_io": tipo_io,
+        "tempo_total_io": tempo_total_io,
         "tempo_io_restante": 0,
-        "realizou_io": False,
-        "momento_io": random.randint(max(1, tempo_total_cpu // 3), max(2, tempo_total_cpu - 2))
+        "realizou_io": realizou_io,
+        "momento_io": momento_io
     }
 
 def inicializar_processos():
@@ -39,12 +51,11 @@ def inicializar_processos():
         processo["status"] = "PRONTO"
         fila_alta_prioridade.append(processo)
 
-        print(f"[t=0] P{processo['pid']} criado -> fila ALTA")
+        print(f"[t=0] P{processo['pid']} criado -> fila ALTA | tipo io: {processo['tipo_io']}")
 
     return lista_processos
 
 def atualizar_fila_io():
-
     global tempo_atual
     processos_io_concluidos = []
     for processo in fila_io:
@@ -54,21 +65,18 @@ def atualizar_fila_io():
             processos_io_concluidos.append(processo)
 
     for processo in processos_io_concluidos:
-
         fila_io.remove(processo)
         processo["status"] = "PRONTO"
 
         if processo["tipo_io"] == "DISCO":
             fila_baixa_prioridade.append(processo)
             print(f"[t={tempo_atual}] P{processo['pid']} retornou do DISCO -> fila BAIXA")
-
         else:
             fila_alta_prioridade.append(processo)
             print(f"[t={tempo_atual}] P{processo['pid']} retornou de {processo['tipo_io']} -> fila ALTA")
 
 
 def selecionar_proximo_processo():
-
     if fila_alta_prioridade:
         return fila_alta_prioridade.popleft()
 
@@ -102,7 +110,6 @@ def executar_processo_por_um_quantum(processo):
 
 
 def processo_deve_solicitar_io(processo):
-
     if processo["realizou_io"]:
         return False
 
@@ -119,7 +126,6 @@ def finalizar_processo(processo):
 
 
 def mover_para_io(processo):
-
     processo["status"] = "BLOQUEADO"
     processo["realizou_io"] = True
     
@@ -137,10 +143,10 @@ def mover_fila_baixa_prioridade(processo):
     print(f"[t={tempo_atual}] P{processo['pid']} sofreu preempção -> fila BAIXA")
 
 def registrar_cpu_ociosa():
-
     global tempo_atual
     print(f"[t={tempo_atual}] CPU OCIOSA")
     tempo_atual += 1
+    atualizar_fila_io()
 
 
 def imprimir_resumo_final():
@@ -153,8 +159,6 @@ print(f"[config] quantum={QUANTUM} | processos={QUANTIDADE_PROCESSOS} | seed={SE
 lista_processos = inicializar_processos()
 
 while quant_processos_finalizados < QUANTIDADE_PROCESSOS:
-
-    atualizar_fila_io()
 
     processo_em_execucao = selecionar_proximo_processo()
 
