@@ -2,7 +2,7 @@ from collections import deque
 import random
 
 QUANTUM = 3
-QUANTIDADE_PROCESSOS = 10
+QUANTIDADE_PROCESSOS = 5
 SEMENTE_ALEATORIA = 4867654453
 
 random.seed(SEMENTE_ALEATORIA)
